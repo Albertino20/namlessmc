@@ -1,0 +1,94 @@
+<?php
+/**
+ * NamelessMC Members Module
+ *
+ * @author Aberdeener
+ * @version 2.2.0
+ * @license MIT
+ */
+
+class Members_Module extends Module {
+
+    private Language $_language;
+    private Language $_members_language;
+
+    public function __construct(Language $language, Language $members_language, Pages $pages) {
+        $this->_language = $language;
+        $this->_members_language = $members_language;
+
+        $name = 'Members';
+        $author = '<a href="https://github.com/tadhgboyle" target="_blank" rel="nofollow noopener">Aberdeener</a>';
+        $module_version = '2.2.5';
+        $nameless_version = '2.2.5';
+
+        parent::__construct($this, $name, $author, $module_version, $nameless_version);
+
+        // Define URLs which belong to this module
+        $pages->add('Members', '/members', 'pages/members.php', 'members');
+        $pages->add('Members', '/queries/member_list', 'queries/member_list.php');
+        $pages->add('Members', '/panel/members/member_lists', 'pages/panel/member_lists.php');
+        $pages->add('Members', '/panel/members/settings', 'pages/panel/settings.php');
+    }
+
+    public function onInstall() {
+        // Not necessary for CookieConsent
+    }
+
+    public function onUninstall() {
+        // Not necessary for CookieConsent
+    }
+
+    public function onEnable() {
+        // Not necessary for CookieConsent
+    }
+
+    public function onDisable() {
+        // Not necessary for CookieConsent
+    }
+
+    public function onPageLoad(User $user, Pages $pages, Cache $cache, $smarty, $navs, Widgets $widgets, TemplateBase $template) {
+        $language = $this->_language;
+
+        // AdminCP
+        PermissionHandler::registerPermissions($language->get('moderator', 'staff_cp'), [
+            'admincp.members' => $this->_members_language->get('members', 'member_lists')
+        ]);
+
+        $cache->setCache('navbar_order');
+        $members_order = $cache->fetch('members_order', 5);
+
+        $cache->setCache('navbar_icons');
+        $members_icon = $cache->fetch('members_icon', '');
+
+        $cache->setCache('nav_location');
+        $link_location = $cache->fetch('members_location', 1);
+
+        switch ($link_location) {
+            case 1:
+                // Navbar
+                $navs[0]->add('members', $this->_members_language->get('members', 'members'), URL::build('/members'), 'top', null, $members_order, $members_icon);
+                break;
+            case 2:
+                // "More" dropdown
+                $navs[0]->addItemToDropdown('more_dropdown', 'members', $this->_members_language->get('members', 'members'), URL::build('/members'), 'top', null, $members_icon, $members_order);
+                break;
+            case 3:
+                // Footer
+                $navs[0]->add('members', $this->_members_language->get('members', 'members'), URL::build('/members'), 'footer', null, $members_order, $members_icon);
+                break;
+        }
+
+        if (defined('BACK_END')) {
+            // StaffCP link
+            if ($user->hasPermission('admincp.members')) {
+                $navs[2]->add('members_divider', mb_strtoupper($this->_members_language->get('members', 'members'), 'UTF-8'), 'divider', 'top', null, 13);
+                $navs[2]->add('members_settings', $this->_language->get('admin', 'settings'), URL::build('/panel/members/settings'), 'top', null, 13.1, '<i class="nav-icon fas fa-cogs"></i>');
+                $navs[2]->add('member_lists_settings', $this->_members_language->get('members', 'member_lists'), URL::build('/panel/members/member_lists'), 'top', null, 13.2, '<i class="nav-icon fas fa-list"></i>');
+            }
+        }
+    }
+
+    public function getDebugInfo(): array {
+        return [];
+    }
+}
